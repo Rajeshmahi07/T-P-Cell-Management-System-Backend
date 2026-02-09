@@ -1,11 +1,11 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 // ================= CREATE STUDENT (ADMIN CAN ADD) =================
 exports.createStudent = async (req, res) => {
   try {
     const { name, email, enrollmentNo, course, password } = req.body;
 
-    // Check if already exists
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({
@@ -66,7 +66,7 @@ exports.getStudentCount = async (req, res) => {
   }
 };
 
-// ================= UPDATE STUDENT =================
+// ================= ADMIN: UPDATE ANY STUDENT =================
 exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,6 +98,101 @@ exports.updateStudent = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+// ================= GET CURRENT STUDENT PROFILE =================
+exports.getMyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user || user.role !== "user") {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Get student profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ================= STUDENT: UPDATE OWN PROFILE =================
+// ================= STUDENT: UPDATE OWN PROFILE =================
+exports.updateMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // from auth middleware
+
+    const { name, email, enrollmentNo, course, currentPassword, password } =
+      req.body;
+
+    // ❗ IMPORTANT FIX: explicitly select password
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ===== CHANGE PASSWORD (IF PROVIDED) =====
+    if (password) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is required to change password",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(
+        currentPassword,
+        user.password
+      );
+
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect",
+        });
+      }
+
+      user.password = password; // will be hashed by pre-save hook
+    }
+
+    // ===== UPDATE OTHER FIELDS =====
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.enrollmentNo = enrollmentNo || user.enrollmentNo;
+    user.course = course || user.course;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        enrollmentNo: user.enrollmentNo,
+        course: user.course,
+      },
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 
 // ================= DELETE STUDENT =================
 exports.deleteStudent = async (req, res) => {

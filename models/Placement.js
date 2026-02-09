@@ -2,19 +2,19 @@ const mongoose = require("mongoose");
 
 const placementSchema = new mongoose.Schema(
   {
-    student: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
-      required: true,
-    },
-
-    companyName: {
+    studentName: {
       type: String,
       required: true,
       trim: true,
     },
 
-    role: {
+    course: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    company: {
       type: String,
       required: true,
       trim: true,
@@ -24,6 +24,11 @@ const placementSchema = new mongoose.Schema(
       type: Number, // in LPA
       required: true,
       min: 0,
+    },
+
+    year: {
+      type: Number,
+      required: true,
     },
 
     status: {

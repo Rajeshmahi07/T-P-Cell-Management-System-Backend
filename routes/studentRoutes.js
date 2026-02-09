@@ -5,23 +5,30 @@ const {
   getStudentCount,
   updateStudent,
   deleteStudent,
+  updateMyProfile,
 } = require("../controllers/studentController");
+
+// CORRECT PATH (your folder is "middlewares")
+const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-// CREATE (Admin add student manually)
+// ===== STUDENT: GET OWN PROFILE =====
+router.get("/me", protect, (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user, // comes from auth middleware
+  });
+});
+
+// ===== STUDENT: UPDATE OWN PROFILE =====
+router.put("/me", protect, updateMyProfile);
+
+// ===== ADMIN ROUTES =====
 router.post("/", createStudent);
-
-// READ ALL STUDENTS
 router.get("/", getAllStudents);
-
-// GET TOTAL STUDENT COUNT
 router.get("/count", getStudentCount);
-
-// UPDATE STUDENT
 router.put("/:id", updateStudent);
-
-// DELETE STUDENT
 router.delete("/:id", deleteStudent);
 
 module.exports = router;
